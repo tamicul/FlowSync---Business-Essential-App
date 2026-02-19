@@ -5,8 +5,7 @@ import {
   Calendar, CheckCircle2, Clock, Plus, Mic, Bell, Settings,
   Zap, TrendingUp, Users, Briefcase, MapPin, Sun, CloudRain,
   ChevronRight, MoreHorizontal, Phone, Video, MapPinned,
-  BrainCircuit, Sparkles, Target, Timer, GripVertical,
-  ArrowRightCircle, Circle
+  BrainCircuit, Sparkles, Target, Timer, GripVertical
 } from "lucide-react";
 import { format, addHours, startOfDay, addDays, isSameDay } from "date-fns";
 
@@ -14,23 +13,24 @@ import { format, addHours, startOfDay, addDays, isSameDay } from "date-fns";
 interface Task {
   id: string;
   title: string;
-  priority: "high" | "medium" | "low";
+  description?: string;
+  priority: "LOW" | "MEDIUM" | "HIGH" | "URGENT";
   duration: number;
-  energy: 1 | 2 | 3 | 4 | 5;
+  energyRequired?: number;
   completed: boolean;
-  category: string;
+  category?: string;
   status: "TODO" | "IN_PROGRESS" | "REVIEW" | "DONE";
 }
 
 interface Event {
   id: string;
   title: string;
-  start: Date;
-  end: Date;
-  type: "meeting" | "focus" | "task" | "break" | "appointment";
-  attendees?: number;
-  location?: string;
   description?: string;
+  startTime: string;
+  endTime: string;
+  type: "MEETING" | "FOCUS_TIME" | "TASK_BLOCK" | "BREAK" | "APPOINTMENT";
+  attendees?: any[];
+  location?: string;
 }
 
 interface AIInsight {
@@ -39,69 +39,13 @@ interface AIInsight {
   action?: string;
 }
 
-// Mock Data
-const today = new Date();
-
-const mockTasks: Task[] = [
-  { id: "1", title: "Review Q4 Budget Proposal", priority: "high", duration: 60, energy: 4, completed: false, category: "Finance", status: "TODO" },
-  { id: "2", title: "Prepare Client Presentation", priority: "high", duration: 90, energy: 5, completed: false, category: "Sales", status: "IN_PROGRESS" },
-  { id: "3", title: "Team Standup Notes", priority: "medium", duration: 15, energy: 2, completed: true, category: "Operations", status: "DONE" },
-  { id: "4", title: "Email Campaign Review", priority: "medium", duration: 45, energy: 3, completed: false, category: "Marketing", status: "TODO" },
-  { id: "5", title: "Update Project Documentation", priority: "low", duration: 30, energy: 2, completed: false, category: "Product", status: "REVIEW" },
-];
-
-const mockEvents: Event[] = [
-  { 
-    id: "1", 
-    title: "Deep Work: Strategy Planning", 
-    start: addHours(startOfDay(today), 9), 
-    end: addHours(startOfDay(today), 11), 
-    type: "focus",
-    description: "High-focus work block - no interruptions"
-  },
-  { 
-    id: "2", 
-    title: "Client Call - TechCorp", 
-    start: addHours(startOfDay(today), 14), 
-    end: addHours(startOfDay(today), 15), 
-    type: "meeting",
-    attendees: 4,
-    location: "Zoom"
-  },
-  { 
-    id: "3", 
-    title: "Lunch Break", 
-    start: addHours(startOfDay(today), 12), 
-    end: addHours(startOfDay(today), 13), 
-    type: "break" 
-  },
-  { 
-    id: "4", 
-    title: "Team Standup", 
-    start: addHours(startOfDay(today), 16), 
-    end: addHours(startOfDay(today), 16.5), 
-    type: "meeting",
-    attendees: 8,
-    location: "Conference Room B"
-  },
-];
-
-const mockInsights: AIInsight[] = [
-  { type: "tip", message: "Your peak focus time is 9-11 AM. Perfect for deep work!", action: "Schedule important tasks" },
-  { type: "warning", message: "You have 3 back-to-back meetings this afternoon. Consider adding buffers.", action: "Auto-fix schedule" },
-  { type: "suggestion", message: "Based on traffic, leave by 1:45 PM for your 2:00 PM meeting.", action: "Set reminder" },
-];
-
 // Voice Input Component
 function VoiceInput({ onTranscript }: { onTranscript: (text: string) => void }) {
   const [isListening, setIsListening] = useState(false);
-  const [transcript, setTranscript] = useState("");
 
   const startListening = () => {
     setIsListening(true);
-    // Mock voice recognition
     setTimeout(() => {
-      setTranscript("Schedule meeting with John tomorrow at 2pm");
       setIsListening(false);
       onTranscript("Schedule meeting with John tomorrow at 2pm");
     }, 2000);
@@ -132,7 +76,7 @@ function VoiceInput({ onTranscript }: { onTranscript: (text: string) => void }) 
           {isListening ? (
             <span className="text-sm text-red-400">Listening...</span>
           ) : (
-            <p className="text-sm text-zinc-400">Click to speak: "Schedule a meeting with John tomorrow at 2pm"</p>
+            <p className="text-sm text-zinc-400">Click to speak: &quot;Schedule a meeting with John tomorrow at 2pm&quot;</p>
           )}
         </div>
       </div>
@@ -153,12 +97,10 @@ function EnergyMap() {
 
   return (
     <div className="bg-zinc-900/50 rounded-2xl p-5 border border-white/[0.06]">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-sm font-semibold text-white flex items-center gap-2">
-          <Zap className="w-4 h-4 text-yellow-400" />
-          Energy Map
-        </h3>
-      </div>
+      <h3 className="text-sm font-semibold text-white flex items-center gap-2 mb-4">
+        <Zap className="w-4 h-4 text-yellow-400" />
+        Energy Map
+      </h3>
       <div className="flex gap-1">
         {hours.map((hour) => {
           const energy = getEnergyLevel(hour);
@@ -211,6 +153,8 @@ function AIInsightsPanel({ insights }: { insights: AIInsight[] }) {
 
 // Today's Timeline
 function TodayTimeline({ events }: { events: Event[] }) {
+  const today = new Date();
+  
   return (
     <div className="bg-zinc-900/50 rounded-2xl p-5 border border-white/[0.06]">
       <div className="flex items-center justify-between mb-4">
@@ -224,27 +168,28 @@ function TodayTimeline({ events }: { events: Event[] }) {
       <div className="space-y-3">
         {events.map((event) => (
           <div key={event.id} className={`flex items-center gap-4 p-3 rounded-xl border ${
-            event.type === "focus" ? "bg-emerald-500/5 border-emerald-500/20" :
-            event.type === "meeting" ? "bg-blue-500/5 border-blue-500/20" :
+            event.type === "FOCUS_TIME" ? "bg-emerald-500/5 border-emerald-500/20" :
+            event.type === "MEETING" ? "bg-blue-500/5 border-blue-500/20" :
             "bg-zinc-800/50 border-white/5"
           }`}>
-            <div className="text-xs text-zinc-500 w-16">{format(event.start, "h:mm a")}</div>
+            <div className="text-xs text-zinc-500 w-16">
+              {format(new Date(event.startTime), "h:mm a")}
+            </div>
             <div className="flex-1">
-              <div className="flex items-center gap-2">
-                <h4 className="text-sm font-medium text-white">{event.title}</h4>
-                {event.type === "focus" && <Target className="w-3 h-3 text-emerald-400" />}
-                {event.type === "meeting" && <Users className="w-3 h-3 text-blue-400" />}
-              </div>
+              <h4 className="text-sm font-medium text-white">{event.title}</h4>
               {event.description && <p className="text-xs text-zinc-500 mt-0.5">{event.description}</p>}
             </div>
           </div>
         ))}
+        {events.length === 0 && (
+          <p className="text-sm text-zinc-500 text-center py-4">No events today</p>
+        )}
       </div>
     </div>
   );
 }
 
-// Priority Tasks with Drag & Drop
+// Priority Tasks with Kanban
 function PriorityTasks({ tasks, onTaskMove }: { tasks: Task[], onTaskMove: (taskId: string, newStatus: Task["status"]) => void }) {
   const columns = [
     { id: "TODO", title: "To Do", color: "border-zinc-500/20" },
@@ -276,15 +221,15 @@ function PriorityTasks({ tasks, onTaskMove }: { tasks: Task[], onTaskMove: (task
               </div>
               <div className="space-y-2">
                 {colTasks.map((task) => (
-                  <div key={task.id} className="bg-zinc-800/50 rounded-lg p-3 cursor-pointer hover:bg-zinc-800">
+                  <div key={task.id} className="bg-zinc-800/50 rounded-lg p-3">
                     <div className="flex items-start gap-2">
                       <GripVertical className="w-4 h-4 text-zinc-600 mt-0.5" />
                       <div className="flex-1">
                         <p className="text-sm text-white">{task.title}</p>
                         <div className="flex items-center gap-2 mt-1">
                           <span className={`text-[10px] px-1.5 py-0.5 rounded ${
-                            task.priority === "high" ? "bg-red-500/10 text-red-400" :
-                            task.priority === "medium" ? "bg-yellow-500/10 text-yellow-400" :
+                            task.priority === "HIGH" ? "bg-red-500/10 text-red-400" :
+                            task.priority === "MEDIUM" ? "bg-yellow-500/10 text-yellow-400" :
                             "bg-zinc-500/10 text-zinc-400"
                           }`}>{task.priority}</span>
                           <span className="text-[10px] text-zinc-500">{task.duration}m</span>
@@ -316,19 +261,13 @@ function PriorityTasks({ tasks, onTaskMove }: { tasks: Task[], onTaskMove: (task
 // Booking Widget
 function BookingWidget() {
   const [step, setStep] = useState(1);
-  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
-  const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [isSubmitted, setIsSubmitted] = useState(false);
-
-  const weekDays = Array.from({ length: 7 }, (_, i) => addDays(today, i));
-  const timeSlots = ["9:00 AM", "9:30 AM", "10:00 AM", "10:30 AM", "2:00 PM", "2:30 PM", "3:00 PM", "3:30 PM"];
 
   if (isSubmitted) {
     return (
       <div className="bg-zinc-900/50 rounded-2xl p-6 border border-white/[0.06] text-center">
         <CheckCircle2 className="w-12 h-12 text-emerald-400 mx-auto mb-4" />
         <h3 className="text-lg font-semibold text-white mb-2">Booking Confirmed!</h3>
-        <p className="text-zinc-400">Your appointment has been scheduled.</p>
       </div>
     );
   }
@@ -342,77 +281,33 @@ function BookingWidget() {
           ))}
         </div>
       </div>
-
       <div className="p-4">
         {step === 1 && (
           <div>
             <h3 className="text-sm font-semibold text-white mb-3">Select Service</h3>
-            <div className="space-y-2">
-              {["Initial Consultation (30 min)", "Strategy Session (60 min)", "Quick Call (15 min)"].map((service) => (
-                <button key={service} onClick={() => setStep(2)} className="w-full text-left p-3 bg-zinc-800/50 rounded-xl hover:bg-zinc-800">
-                  <p className="text-sm text-white">{service}</p>
-                </button>
-              ))}
-            </div>
+            {["Initial Consultation", "Strategy Session", "Quick Call"].map((service) => (
+              <button key={service} onClick={() => setStep(2)} className="w-full text-left p-3 bg-zinc-800/50 rounded-xl hover:bg-zinc-800 mb-2">
+                <p className="text-sm text-white">{service}</p>
+              </button>
+            ))}
           </div>
         )}
-
         {step === 2 && (
           <div>
-            <h3 className="text-sm font-semibold text-white mb-3">Select Date & Time</h3>
-            <div className="grid grid-cols-7 gap-1 mb-4">
-              {weekDays.map((day) => (
-                <button
-                  key={day.toISOString()}
-                  onClick={() => setSelectedDate(day)}
-                  className={`p-2 rounded-lg text-center ${selectedDate && isSameDay(day, selectedDate) ? "bg-emerald-500 text-white" : "bg-zinc-800/50"}`}
-                >
-                  <p className="text-[10px]">{format(day, "EEE")}</p>
-                  <p className="text-sm font-semibold">{format(day, "d")}</p>
-                </button>
-              ))}
-            </div>
-            {selectedDate && (
-              <div className="grid grid-cols-4 gap-2">
-                {timeSlots.map((time) => (
-                  <button
-                    key={time}
-                    onClick={() => setSelectedTime(time)}
-                    className={`p-2 rounded-lg text-xs ${selectedTime === time ? "bg-emerald-500 text-white" : "bg-zinc-800 hover:bg-zinc-700"}`}
-                  >
-                    {time}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-
-        {step === 3 && (
-          <div>
-            <h3 className="text-sm font-semibold text-white mb-3">Your Information</h3>
-            <input type="text" placeholder="Name" className="w-full p-3 bg-zinc-800 rounded-lg text-white text-sm mb-2" />
-            <input type="email" placeholder="Email" className="w-full p-3 bg-zinc-800 rounded-lg text-white text-sm mb-2" />
-            <button onClick={() => setIsSubmitted(true)} className="w-full p-3 bg-emerald-500 text-white rounded-lg text-sm font-medium">
-              Confirm Booking
-            </button>
-          </div>
-        )}
-
-        <div className="flex justify-between mt-4 pt-4 border-t border-white/[0.06]">
-          <button onClick={() => setStep(Math.max(1, step - 1))} disabled={step === 1} className="text-zinc-400 text-sm disabled:opacity-50">
-            Back
-          </button>
-          {step < 3 && (
-            <button 
-              onClick={() => setStep(step + 1)} 
-              disabled={step === 2 && (!selectedDate || !selectedTime)}
-              className="px-4 py-2 bg-emerald-500 text-white rounded-lg text-sm disabled:opacity-50"
-            >
+            <h3 className="text-sm font-semibold text-white mb-3">Select Date</h3>
+            <button onClick={() => setStep(3)} className="w-full p-3 bg-emerald-500 text-white rounded-xl">
               Continue
             </button>
-          )}
-        </div>
+          </div>
+        )}
+        {step === 3 && (
+          <button onClick={() => setIsSubmitted(true)} className="w-full p-3 bg-emerald-500 text-white rounded-xl">
+            Confirm
+          </button>
+        )}
+        {step > 1 && (
+          <button onClick={() => setStep(step - 1)} className="mt-2 text-zinc-400 text-sm">Back</button>
+        )}
       </div>
     </div>
   );
@@ -420,18 +315,61 @@ function BookingWidget() {
 
 // Main Dashboard
 export default function Dashboard() {
-  const [tasks, setTasks] = useState<Task[]>(mockTasks);
-  const [insights, setInsights] = useState<AIInsight[]>(mockInsights);
-  const [showVoiceModal, setShowVoiceModal] = useState(false);
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [events, setEvents] = useState<Event[]>([]);
+  const [insights, setInsights] = useState<AIInsight[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const handleTaskMove = (taskId: string, newStatus: Task["status"]) => {
-    setTasks(tasks.map(t => t.id === taskId ? { ...t, status: newStatus } : t));
+  // Fetch data on mount
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [tasksRes, eventsRes, insightsRes] = await Promise.all([
+          fetch("/api/tasks"),
+          fetch("/api/events"),
+          fetch("/api/insights"),
+        ]);
+
+        if (tasksRes.ok) setTasks(await tasksRes.json());
+        if (eventsRes.ok) setEvents(await eventsRes.json());
+        if (insightsRes.ok) setInsights(await insightsRes.json());
+      } catch (error) {
+        console.error("Error fetching data:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
+
+  const handleTaskMove = async (taskId: string, newStatus: Task["status"]) => {
+    try {
+      const res = await fetch("/api/tasks", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: taskId, status: newStatus }),
+      });
+      
+      if (res.ok) {
+        setTasks(tasks.map(t => t.id === taskId ? { ...t, status: newStatus } : t));
+      }
+    } catch (error) {
+      console.error("Error updating task:", error);
+    }
   };
 
   const handleVoiceInput = (text: string) => {
     console.log("Voice input:", text);
-    setShowVoiceModal(false);
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center">
+        <div className="text-white">Loading...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] p-6">
@@ -481,7 +419,7 @@ export default function Dashboard() {
           </div>
           <div className="bg-zinc-900/50 rounded-xl p-4 border border-white/[0.06]">
             <p className="text-xs text-zinc-500">Meetings</p>
-            <p className="text-2xl font-bold text-white mt-1">4</p>
+            <p className="text-2xl font-bold text-white mt-1">{events.length}</p>
           </div>
         </div>
 
@@ -494,7 +432,7 @@ export default function Dashboard() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Left Column */}
           <div className="space-y-6">
-            <TodayTimeline events={mockEvents} />
+            <TodayTimeline events={events} />
             <EnergyMap />
           </div>
           
@@ -503,7 +441,7 @@ export default function Dashboard() {
             <PriorityTasks tasks={tasks} onTaskMove={handleTaskMove} />
             
             <div className="grid grid-cols-2 gap-6">
-              <AIInsightsPanel insights={insights} />
+              <AIInsightsPanel insights={insights.length > 0 ? insights : [{type: "tip", message: "Welcome to FlowSync! Start by adding tasks and events.", action: "Get started"}]} />
               <BookingWidget />
             </div>
           </div>
