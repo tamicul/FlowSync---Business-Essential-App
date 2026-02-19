@@ -16,7 +16,6 @@ model User {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
   
-  // Relations
   events        Event[]
   tasks         Task[]
   appointments  Appointment[]
@@ -30,25 +29,21 @@ model UserPreferences {
   userId                String   @unique
   user                  User     @relation(fields: [userId], references: [id])
   
-  // Calendar settings
-  defaultWorkingHours   Json     // { start: 9, end: 17 }
+  defaultWorkingHours   Json
   timezone              String   @default("America/New_York")
-  weekStartsOn          Int      @default(1) // Monday
+  weekStartsOn          Int      @default(1)
   
-  // Notification settings
   emailNotifications    Boolean  @default(true)
   pushNotifications     Boolean  @default(true)
   smsNotifications      Boolean  @default(false)
-  reminderDefault       Int      @default(15) // minutes before
+  reminderDefault       Int      @default(15)
   
-  // AI settings
   aiSuggestions         Boolean  @default(true)
   autoSchedule          Boolean  @default(false)
   focusTimeBlocks       Boolean  @default(true)
   
-  // Booking settings
   bookingEnabled        Boolean  @default(true)
-  bufferBetweenMeetings Int      @default(15) // minutes
+  bufferBetweenMeetings Int      @default(15)
   minNoticeHours        Int      @default(24)
   maxBookingDays        Int      @default(30)
 }
@@ -58,12 +53,9 @@ model EnergyPattern {
   userId      String   @unique
   user        User     @relation(fields: [userId], references: [id])
   
-  // Energy levels by hour (0-23)
-  hourData    Json     // { "9": 5, "10": 5, "11": 4, ... }
-  
-  // Patterns
-  peakHours   Int[]    // [9, 10, 11]
-  lowHours    Int[]    // [14, 15]
+  hourData    Json
+  peakHours   Int[]
+  lowHours    Int[]
   
   updatedAt   DateTime @updatedAt
 }
@@ -82,29 +74,22 @@ model Event {
   priority      Priority  @default(MEDIUM)
   status        EventStatus @default(CONFIRMED)
   
-  // Location
   location      String?
   isVirtual     Boolean   @default(false)
   meetingLink   String?
   
-  // Attendees
   attendees     Attendee[]
-  
-  // Related data
   tasks         Task[]
   attachments   Attachment[]
   notes         Note[]
   
-  // Recurrence
   isRecurring   Boolean   @default(false)
   recurrenceRule String?
   parentEventId String?
   
-  // AI
-  aiPrep        Json?     // Generated meeting prep
-  aiSummary     String?   // Post-meeting summary
+  aiPrep        Json?
+  aiSummary     String?
   
-  // Context
   weather       Json?
   traffic       Json?
   
@@ -136,34 +121,26 @@ model Task {
   title         String
   description   String?
   
-  // Status & Priority
   status        TaskStatus @default(TODO)
   priority      Priority   @default(MEDIUM)
   
-  // Time tracking
   estimatedMinutes Int?
   actualMinutes    Int?
   
-  // Energy & Focus
-  energyRequired   Int?     // 1-5 scale
+  energyRequired   Int?
   focusLevel       FocusLevel @default(MEDIUM)
   
-  // Scheduling
   dueDate       DateTime?
   scheduledDate DateTime?
   eventId       String?
   event         Event?     @relation(fields: [eventId], references: [id])
   
-  // Organization
   category      String?
   tags          String[]
   projectId     String?
   
-  // Dependencies
   parentTaskId  String?
-  dependencies  TaskDependency[]
   
-  // Metadata
   attachments   Attachment[]
   completedAt   DateTime?
   
@@ -175,51 +152,36 @@ model Task {
   @@index([dueDate])
 }
 
-model TaskDependency {
-  id          String   @id @default(uuid())
-  taskId      String
-  task        Task     @relation(fields: [taskId], references: [id])
-  dependsOnId String
-}
-
 model Appointment {
   id              String   @id @default(uuid())
   userId          String
   user            User     @relation(fields: [userId], references: [id])
   
-  // Client info
   clientName      String
   clientEmail     String
   clientPhone     String?
   
-  // Service details
   serviceType     String
   serviceName     String
   description     String?
   
-  // Scheduling
   requestedDate   DateTime
-  duration        Int      // minutes
+  duration        Int
   status          AppointmentStatus @default(PENDING)
   
-  // Payment
   price           Float?
   depositRequired Float?
   depositPaid     Boolean  @default(false)
   
-  // Meeting details
   location        String?
   isVirtual       Boolean  @default(false)
   meetingLink     String?
   
-  // Notes
   clientNotes     String?
   internalNotes   String?
   
-  // Reminders
   reminderSent    Boolean  @default(false)
   
-  // Linked event (once confirmed)
   eventId         String?
   
   createdAt       DateTime @default(now())
@@ -238,7 +200,7 @@ model AIInsight {
   category        String
   title           String
   message         String
-  confidence      Float       // 0-1
+  confidence      Float
   
   suggestedAction String?
   actionTaken     Boolean     @default(false)
@@ -254,8 +216,8 @@ model Attachment {
   id        String   @id @default(uuid())
   url       String
   name      String
-  type      String   // mime type
-  size      Int      // bytes
+  type      String
+  size      Int
   
   eventId   String?
   event     Event?   @relation(fields: [eventId], references: [id])
@@ -279,7 +241,6 @@ model Note {
   @@index([eventId])
 }
 
-// Enums
 enum EventType {
   MEETING
   FOCUS_TIME
