@@ -1,0 +1,350 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String    @id @default(uuid())
+  clerkId       String    @unique
+  email         String    @unique
+  name          String?
+  avatar        String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  // Relations
+  events        Event[]
+  tasks         Task[]
+  appointments  Appointment[]
+  preferences   UserPreferences?
+  energyPattern EnergyPattern?
+  insights      AIInsight[]
+}
+
+model UserPreferences {
+  id                    String   @id @default(uuid())
+  userId                String   @unique
+  user                  User     @relation(fields: [userId], references: [id])
+  
+  // Calendar settings
+  defaultWorkingHours   Json     // { start: 9, end: 17 }
+  timezone              String   @default("America/New_York")
+  weekStartsOn          Int      @default(1) // Monday
+  
+  // Notification settings
+  emailNotifications    Boolean  @default(true)
+  pushNotifications     Boolean  @default(true)
+  smsNotifications      Boolean  @default(false)
+  reminderDefault       Int      @default(15) // minutes before
+  
+  // AI settings
+  aiSuggestions         Boolean  @default(true)
+  autoSchedule          Boolean  @default(false)
+  focusTimeBlocks       Boolean  @default(true)
+  
+  // Booking settings
+  bookingEnabled        Boolean  @default(true)
+  bufferBetweenMeetings Int      @default(15) // minutes
+  minNoticeHours        Int      @default(24)
+  maxBookingDays        Int      @default(30)
+}
+
+model EnergyPattern {
+  id          String   @id @default(uuid())
+  userId      String   @unique
+  user        User     @relation(fields: [userId], references: [id])
+  
+  // Energy levels by hour (0-23)
+  hourData    Json     // { "9": 5, "10": 5, "11": 4, ... }
+  
+  // Patterns
+  peakHours   Int[]    // [9, 10, 11]
+  lowHours    Int[]    // [14, 15]
+  
+  updatedAt   DateTime @updatedAt
+}
+
+model Event {
+  id            String    @id @default(uuid())
+  userId        String
+  user          User      @relation(fields: [userId], references: [id])
+  
+  title         String
+  description   String?
+  startTime     DateTime
+  endTime       DateTime
+  
+  type          EventType @default(MEETING)
+  priority      Priority  @default(MEDIUM)
+  status        EventStatus @default(CONFIRMED)
+  
+  // Location
+  location      String?
+  isVirtual     Boolean   @default(false)
+  meetingLink   String?
+  
+  // Attendees
+  attendees     Attendee[]
+  
+  // Related data
+  tasks         Task[]
+  attachments   Attachment[]
+  notes         Note[]
+  
+  // Recurrence
+  isRecurring   Boolean   @default(false)
+  recurrenceRule String?
+  parentEventId String?
+  
+  // AI
+  aiPrep        Json?     // Generated meeting prep
+  aiSummary     String?   // Post-meeting summary
+  
+  // Context
+  weather       Json?
+  traffic       Json?
+  
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  @@index([userId])
+  @@index([startTime])
+}
+
+model Attendee {
+  id          String   @id @default(uuid())
+  eventId     String
+  event       Event    @relation(fields: [eventId], references: [id])
+  
+  email       String
+  name        String?
+  status      AttendeeStatus @default(PENDING)
+  isOptional  Boolean  @default(false)
+  
+  @@index([eventId])
+}
+
+model Task {
+  id            String     @id @default(uuid())
+  userId        String
+  user          User       @relation(fields: [userId], references: [id])
+  
+  title         String
+  description   String?
+  
+  // Status & Priority
+  status        TaskStatus @default(TODO)
+  priority      Priority   @default(MEDIUM)
+  
+  // Time tracking
+  estimatedMinutes Int?
+  actualMinutes    Int?
+  
+  // Energy & Focus
+  energyRequired   Int?     // 1-5 scale
+  focusLevel       FocusLevel @default(MEDIUM)
+  
+  // Scheduling
+  dueDate       DateTime?
+  scheduledDate DateTime?
+  eventId       String?
+  event         Event?     @relation(fields: [eventId], references: [id])
+  
+  // Organization
+  category      String?
+  tags          String[]
+  projectId     String?
+  
+  // Dependencies
+  parentTaskId  String?
+  dependencies  TaskDependency[]
+  
+  // Metadata
+  attachments   Attachment[]
+  completedAt   DateTime?
+  
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+  
+  @@index([userId])
+  @@index([status])
+  @@index([dueDate])
+}
+
+model TaskDependency {
+  id          String   @id @default(uuid())
+  taskId      String
+  task        Task     @relation(fields: [taskId], references: [id])
+  dependsOnId String
+}
+
+model Appointment {
+  id              String   @id @default(uuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id])
+  
+  // Client info
+  clientName      String
+  clientEmail     String
+  clientPhone     String?
+  
+  // Service details
+  serviceType     String
+  serviceName     String
+  description     String?
+  
+  // Scheduling
+  requestedDate   DateTime
+  duration        Int      // minutes
+  status          AppointmentStatus @default(PENDING)
+  
+  // Payment
+  price           Float?
+  depositRequired Float?
+  depositPaid     Boolean  @default(false)
+  
+  // Meeting details
+  location        String?
+  isVirtual       Boolean  @default(false)
+  meetingLink     String?
+  
+  // Notes
+  clientNotes     String?
+  internalNotes   String?
+  
+  // Reminders
+  reminderSent    Boolean  @default(false)
+  
+  // Linked event (once confirmed)
+  eventId         String?
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  @@index([userId])
+  @@index([status])
+}
+
+model AIInsight {
+  id              String      @id @default(uuid())
+  userId          String
+  user            User        @relation(fields: [userId], references: [id])
+  
+  type            InsightType
+  category        String
+  title           String
+  message         String
+  confidence      Float       // 0-1
+  
+  suggestedAction String?
+  actionTaken     Boolean     @default(false)
+  
+  dismissed       Boolean     @default(false)
+  createdAt       DateTime    @default(now())
+  
+  @@index([userId])
+  @@index([createdAt])
+}
+
+model Attachment {
+  id        String   @id @default(uuid())
+  url       String
+  name      String
+  type      String   // mime type
+  size      Int      // bytes
+  
+  eventId   String?
+  event     Event?   @relation(fields: [eventId], references: [id])
+  taskId    String?
+  task      Task?    @relation(fields: [taskId], references: [id])
+  
+  createdAt DateTime @default(now())
+}
+
+model Note {
+  id        String   @id @default(uuid())
+  eventId   String
+  event     Event    @relation(fields: [eventId], references: [id])
+  
+  content   String
+  type      NoteType @default(TEXT)
+  createdBy String
+  
+  createdAt DateTime @default(now())
+  
+  @@index([eventId])
+}
+
+// Enums
+enum EventType {
+  MEETING
+  FOCUS_TIME
+  TASK_BLOCK
+  BREAK
+  APPOINTMENT
+  REMINDER
+  TRAVEL
+}
+
+enum EventStatus {
+  CONFIRMED
+  TENTATIVE
+  CANCELLED
+}
+
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum TaskStatus {
+  TODO
+  IN_PROGRESS
+  REVIEW
+  DONE
+  CANCELLED
+}
+
+enum FocusLevel {
+  LOW
+  MEDIUM
+  HIGH
+  DEEP
+}
+
+enum AttendeeStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+  TENTATIVE
+}
+
+enum AppointmentStatus {
+  PENDING
+  CONFIRMED
+  RESCHEDULED
+  CANCELLED
+  COMPLETED
+  NO_SHOW
+}
+
+enum InsightType {
+  TIP
+  WARNING
+  SUGGESTION
+  ALERT
+  CELEBRATION
+}
+
+enum NoteType {
+  TEXT
+  AUDIO
+  ACTION_ITEM
+  DECISION
+}
