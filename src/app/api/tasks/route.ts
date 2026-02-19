@@ -25,10 +25,6 @@ export async function GET(req: NextRequest) {
         { priority: "desc" },
         { dueDate: "asc" },
       ],
-      include: {
-        event: true,
-        dependencies: true,
-      },
     });
 
     return NextResponse.json(tasks);
