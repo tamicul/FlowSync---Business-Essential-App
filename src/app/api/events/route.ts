@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 
+export const dynamic = 'force-dynamic';
+
 const mockEvents = [
   { id: "1", title: "Team Standup", startTime: new Date().toISOString(), endTime: new Date().toISOString(), type: "MEETING" },
   { id: "2", title: "Focus Time", startTime: new Date().toISOString(), endTime: new Date().toISOString(), type: "FOCUS_TIME" },

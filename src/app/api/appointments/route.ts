@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 
+export const dynamic = 'force-dynamic';
+
 const mockAppointments = [
   { id: "1", clientName: "Sarah Johnson", serviceName: "Consultation", status: "PENDING", requestedDate: new Date().toISOString() },
   { id: "2", clientName: "Mike Chen", serviceName: "Strategy Session", status: "CONFIRMED", requestedDate: new Date().toISOString() },

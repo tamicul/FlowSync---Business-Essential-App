@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 
+export const dynamic = 'force-dynamic';
+
 // Mock data for build time / when DB is not available
 const mockTasks = [
   { id: "1", title: "Review Q4 Budget", status: "TODO", priority: "HIGH", userId: "mock" },
