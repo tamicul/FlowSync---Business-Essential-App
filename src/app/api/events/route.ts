@@ -1,58 +1,66 @@
-import { NextRequest, NextResponse } from "next/server";
+import { auth } from "@clerk/nextjs/server";
+import { NextResponse } from "next/server";
+import { PrismaClient } from "@prisma/client";
+
+const prisma = new PrismaClient();
 
 export const dynamic = 'force-dynamic';
 
-// Static mock data - no imports during build
-const mockEvents = [
-  { 
-    id: "1", 
-    title: "Team Standup", 
-    startTime: new Date().toISOString(), 
-    endTime: new Date(Date.now() + 30 * 60000).toISOString(), 
-    type: "MEETING",
-    description: "Daily team sync",
-    location: "Zoom"
-  },
-  { 
-    id: "2", 
-    title: "Deep Work: Strategy", 
-    startTime: new Date(Date.now() + 60 * 60000).toISOString(), 
-    endTime: new Date(Date.now() + 180 * 60000).toISOString(), 
-    type: "FOCUS_TIME",
-    description: "No interruptions",
-  },
-];
-
 export async function GET() {
-  // Return mock data - real DB connection happens at runtime
-  return NextResponse.json(mockEvents);
-}
-
-export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
-    return NextResponse.json({ 
-      id: Date.now().toString(),
-      ...body,
-      createdAt: new Date().toISOString()
+    const { userId } = await auth();
+    if (!userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const today = new Date();
+    const startOfDay = new Date(today.setHours(0, 0, 0, 0));
+    const endOfDay = new Date(today.setHours(23, 59, 59, 999));
+
+    const events = await prisma.event.findMany({
+      where: {
+        userId,
+        startTime: {
+          gte: startOfDay,
+          lte: endOfDay,
+        },
+      },
+      orderBy: { startTime: "asc" },
     });
-  } catch {
-    return NextResponse.json({ error: "Invalid request" }, { status: 400 });
+
+    return NextResponse.json(events);
+  } catch (error) {
+    console.error("Error fetching events:", error);
+    return NextResponse.json({ error: "Failed to fetch events" }, { status: 500 });
   }
 }
 
-export async function PUT(request: NextRequest) {
+export async function POST(request: Request) {
   try {
-    const body = await request.json();
-    return NextResponse.json({ 
-      ...body, 
-      updatedAt: new Date().toISOString() 
-    });
-  } catch {
-    return NextResponse.json({ error: "Invalid request" }, { status: 400 });
-  }
-}
+    const { userId } = await auth();
+    if (!userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
-export async function DELETE() {
-  return NextResponse.json({ success: true });
+    const body = await request.json();
+    
+    const event = await prisma.event.create({
+      data: {
+        userId,
+        title: body.title,
+        description: body.description,
+        startTime: new Date(body.startTime),
+        endTime: new Date(body.endTime),
+        type: body.type || "MEETING",
+        location: body.location,
+        isVirtual: body.isVirtual || false,
+        meetingLink: body.meetingLink,
+      },
+    });
+
+    return NextResponse.json(event);
+  } catch (error) {
+    console.error("Error creating event:", error);
+    return NextResponse.json({ error: "Failed to create event" }, { status: 500 });
+  }
 }
